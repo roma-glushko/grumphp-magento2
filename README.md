@@ -24,7 +24,7 @@ parameters:
 
 It's a common practice to commit config.php file in Magento 2. Especially, the file is useful for managing modules. The common issue is when during development people forget to register newly added modules to the config.php which can lead to outcomes that hard to troubleshoot. This task helps to watch for such cases and let to know when registration is missing.
 
-To use this task, just specify if inside `grumphp.yml` in the `tasks:` section.
+To use this task, just specify this inside `grumphp.yml` in the `tasks:` section.
 
 ```yaml
 parameters:
@@ -40,3 +40,44 @@ parameters:
                 another-vendor/cool-module: ["AnotherVendor_CoolModule"]
             
 ```
+
+**composer_json_path**
+
+*Default: `./composer.json`*
+
+Path to composer.json file of the project. 
+This file will be used to find Magento modules installed via Composer.
+
+**composer_home_path**
+
+*Default: `./var/composer_home`*
+
+Path to Composer Home directory.
+
+**configphp_path**
+
+*Default: `./app/etc/config.php`*
+
+Path to config.php file of the project.
+
+**allowed_package_types**
+
+*Default: `['magento2-module', 'magento2-component']`*
+
+Magento package types that we need to track during checking of packages. 
+Sometimes vendors don't specify package type, but normally they should.
+
+**allowed_packages**
+
+*Default: `[
+                'magento/data-migration-tool' => ['Magento_DataMigrationTool']
+            ]`*
+
+In case module vendor did not created a module in a normal way (no package type was specified or psr-4 autoloader prefix is different then module name), this config helps to watch for such packages. 
+Key of the array is a package name. The value is a list of module names that the package brings.
+
+**custom_module_pattern**
+
+*Default: `./app/code/*/*/registration.php`*
+
+A glob() pattern that helps to find custom non-composer magento modules.
