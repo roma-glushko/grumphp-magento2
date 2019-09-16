@@ -2,7 +2,7 @@
 
 namespace Glushko\GrumphpMagento2\Extension;
 
-use Glushko\GrumphpMagento2\Task\MagentoNewModuleTask;
+use Glushko\GrumphpMagento2\Task\MagentoModuleRegistrationTask;
 use GrumPHP\Extension\ExtensionInterface;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
 use Symfony\Component\DependencyInjection\Reference;
@@ -14,12 +14,15 @@ class Loader implements ExtensionInterface
 {
     /**
      * @param ContainerBuilder $container
+     *
+     * @return void
      */
     public function load(ContainerBuilder $container)
     {
-        $container->register('magento2.new-module', MagentoNewModuleTask::class)
+        $container->register('magento2.new-module', MagentoModuleRegistrationTask::class)
             ->addArgument(new Reference('config'))
             ->addArgument(new Reference('process_builder'))
-            ->addTag('grumphp.task', ['config' => 'magento2-new-module']);
+            ->addArgument(new Reference('formatter.raw_process'))
+            ->addTag('grumphp.task', ['config' => 'magento2-module-registration']);
     }
 }
