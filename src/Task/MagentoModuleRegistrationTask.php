@@ -40,7 +40,9 @@ class MagentoModuleRegistrationTask extends AbstractExternalTask
             'composer_home_path' => './var/composer_home',
             'configphp_path' => './app/etc/config.php',
             'allowed_package_types' => ['magento2-module', 'magento2-component'],
-            'allowed_packages' => ['magento/data-migration-tool'],
+            'allowed_packages' => [
+                'magento/data-migration-tool' => ['Magento_DataMigrationTool'],
+            ],
             'custom_module_pattern' => './app/code/*/*/registration.php',
         ]);
 
@@ -77,7 +79,7 @@ class MagentoModuleRegistrationTask extends AbstractExternalTask
 
         // todo: need to support GitPreCommitContext and RunContext contexts
 
-        $composerModules = $this->getInstalledMagentoPackages(
+        $composerModules = $this->getComposerModules(
             $composerJsonPath,
             $composerHomePath,
             $allowedPackageTypes,
@@ -93,7 +95,9 @@ class MagentoModuleRegistrationTask extends AbstractExternalTask
             return TaskResult::createFailed(
                 $this,
                 $context,
-                'Magento has modules that were not registered in config.php: \n' . implode('\n', $unregisteredModules)
+                'Project has modules that were not registered in config.php:' .
+                PHP_EOL .
+                implode(PHP_EOL, $unregisteredModules)
             );
         }
 
@@ -111,7 +115,7 @@ class MagentoModuleRegistrationTask extends AbstractExternalTask
             throw new RuntimeException("glob() doesn't retrieve custom modules");
         }
 
-        $pathPartToRemove = explode('/*/*/', $customModulePattern);
+        $pathPartToRemove = explode('*/*', $customModulePattern);
 
         $magentoModules = array_map(function ($file) use ($pathPartToRemove) {
             $autoloaderPrefix = str_replace($pathPartToRemove, '', $file);
@@ -157,7 +161,7 @@ class MagentoModuleRegistrationTask extends AbstractExternalTask
      *
      * @return array
      */
-    public function getInstalledMagentoPackages(
+    public function getComposerModules(
         string $composerJsonPath,
         string $composerHomePath,
         array $allowedPackageTypes,
@@ -172,19 +176,30 @@ class MagentoModuleRegistrationTask extends AbstractExternalTask
             $packageName = $package->getPrettyName();
             $packageType = $package->getType();
 
-            if ((!in_array($packageType, $allowedPackageTypes))
-                || ($this->isSystemPackage($packageName))
-                || (!in_array($packageName, $allowedPackages))) {
+            if (!(in_array($packageType, $allowedPackageTypes) || array_key_exists($packageName, $allowedPackages))
+                || $this->isSystemPackage($packageName)
+            ) {
                 continue;
             }
 
+            // process exceptions that declared in abnormal way
+            if (array_key_exists($packageName, $allowedPackages)) {
+                $moduleNames = $allowedPackages[$packageName];
+                $packages = array_merge($packages, $moduleNames);
+
+                continue;
+            }
+
+            // process normal magento packages
             $autoload = $package->getAutoload();
 
-            if (array_key_exists('psr-4', $autoload) && count($autoload['psr-4']) > 0) {
-                $moduleNames = array_map(function ($autoloaderPrefix) {
-                    return str_replace('\\', '_', trim($autoloaderPrefix, '\\'));
-                }, array_keys($autoload['psr-4']));
+            if (!array_key_exists('psr-4', $autoload) || count($autoload['psr-4']) == 0) {
+                continue;
             }
+
+            $moduleNames = array_map(function ($autoloaderPrefix) {
+                return str_replace('\\', '_', trim($autoloaderPrefix, '\\'));
+            }, array_keys($autoload['psr-4']));
 
             $packages = array_merge($packages, $moduleNames);
         }
