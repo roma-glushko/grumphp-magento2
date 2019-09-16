@@ -69,9 +69,7 @@ Sometimes vendors don't specify package type, but normally they should.
 
 **allowed_packages**
 
-*Default: `[
-                'magento/data-migration-tool' => ['Magento_DataMigrationTool']
-            ]`*
+*Default: `["magento/data-migration-tool": ["Magento_DataMigrationTool"]]`*
 
 In case module vendor did not created a module in a normal way (no package type was specified or psr-4 autoloader prefix is different then module name), this config helps to watch for such packages. 
 Key of the array is a package name. The value is a list of module names that the package brings.
