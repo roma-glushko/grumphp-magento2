@@ -1,0 +1,22 @@
+{
+    "name": "roma-glushko/grumphp-magento2",
+    "description": "Magento 2 specific tasks for GrumPHP",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Roman Glushko",
+            "email": "roman.glushko.m@gmail.com"
+        }
+    ],
+    "autoload": {
+        "psr-4": {
+            "Glushko\\GrumphpMagento2\\": "src/"
+        }
+    },
+    "require": {
+        "php": ">=7.0",
+        "phpro/grumphp": "~0.15",
+        "composer/composer": "^1.6"
+    },
+    "minimum-stability": "stable"
+}
