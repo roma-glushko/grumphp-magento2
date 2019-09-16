@@ -2,11 +2,10 @@
 
 namespace Glushko\GrumphpMagento2\Task;
 
-use Composer\Composer as Composer;
+use Composer\Composer;
 use Composer\Factory as ComposerFactory;
 use Composer\IO\BufferIO;
 use Composer\Package\CompletePackageInterface;
-use Composer\Package\Locker as ComposerLocker;
 use GrumPHP\Runner\TaskResult;
 use GrumPHP\Runner\TaskResultInterface;
 use GrumPHP\Task\AbstractExternalTask;
@@ -39,18 +38,18 @@ class MagentoModuleRegistrationTask extends AbstractExternalTask
         $resolver->setDefaults([
             'composer_json_path' => './composer.json',
             'composer_home_path' => './var/composer_home',
-            'config_path' => './app/etc/config.php',
+            'configphp_path' => './app/etc/config.php',
             'allowed_package_types' => ['magento2-module', 'magento2-component'],
+            'allowed_packages' => ['magento/data-migration-tool'],
             'custom_module_pattern' => './app/code/*/*/registration.php',
-            'module_package_include_list' => ['magento/data-migration-tool'],
         ]);
 
         $resolver->addAllowedTypes('allowed_package_types', ['array']);
-        $resolver->addAllowedTypes('module_package_include_list', ['array']);
+        $resolver->addAllowedTypes('allowed_packages', ['array']);
         $resolver->addAllowedTypes('custom_module_pattern', ['string']);
         $resolver->addAllowedTypes('composer_json_path', ['string']);
         $resolver->addAllowedTypes('composer_home_path', ['string']);
-        $resolver->addAllowedTypes('config_path', ['string']);
+        $resolver->addAllowedTypes('configphp_path', ['string']);
 
         return $resolver;
     }
@@ -71,24 +70,32 @@ class MagentoModuleRegistrationTask extends AbstractExternalTask
         $config = $this->getConfiguration();
         $customModulePattern = $config['custom_module_pattern'];
         $allowedPackageTypes = $config['allowed_package_types'];
+        $allowedPackages = $config['allowed_packages'];
         $composerJsonPath = $config['composer_json_path'];
         $composerHomePath = $config['composer_home_path'];
-        $configPhpPath = $config['config_path'];
+        $configPhpPath = $config['configphp_path'];
 
         // todo: need to support GitPreCommitContext and RunContext contexts
 
-        $magentoComposerModules = $this->getInstalledMagentoPackages(
+        $composerModules = $this->getInstalledMagentoPackages(
             $composerJsonPath,
             $composerHomePath,
-            $allowedPackageTypes
+            $allowedPackageTypes,
+            $allowedPackages
         );
 
-        $magentoCustomModules = $this->getCustomMagentoModules($customModulePattern);
+        $customModules = $this->getCustomMagentoModules($customModulePattern);
         $declaredModules = $this->getDeclaredModuleList($configPhpPath);
 
-        // todo: need to implement whitelist of modules which doesn't declare package type
+        $unregisteredModules = array_diff($declaredModules, $composerModules, $customModules);
 
-        var_dump(array_diff($declaredModules, $magentoComposerModules, $magentoCustomModules));
+        if (count($unregisteredModules) > 0) {
+            return TaskResult::createFailed(
+                $this,
+                $context,
+                'Magento has modules that were not registered in config.php: \n' . implode('\n', $unregisteredModules)
+            );
+        }
 
         return TaskResult::createPassed($this, $context);
     }
@@ -146,13 +153,15 @@ class MagentoModuleRegistrationTask extends AbstractExternalTask
      * @param string $composerJsonPath
      * @param string $composerHomePath
      * @param array $allowedPackageTypes
+     * @param array $allowedPackages
      *
      * @return array
      */
     public function getInstalledMagentoPackages(
         string $composerJsonPath,
         string $composerHomePath,
-        array $allowedPackageTypes
+        array $allowedPackageTypes,
+        array $allowedPackages
     ): array {
         $packages = [];
 
@@ -160,19 +169,24 @@ class MagentoModuleRegistrationTask extends AbstractExternalTask
 
         /** @var CompletePackageInterface $package */
         foreach ($composerLocker->getLockedRepository()->getPackages() as $package) {
-            if ((in_array($package->getType(), $allowedPackageTypes))
-                && (!$this->isSystemPackage($package->getPrettyName()))) {
+            $packageName = $package->getPrettyName();
+            $packageType = $package->getType();
 
-                $autoload = $package->getAutoload();
-
-                if (array_key_exists('psr-4', $autoload) && count($autoload['psr-4']) > 0) {
-                    $moduleNames = array_map(function ($autoloaderPrefix) {
-                        return str_replace('\\', '_', trim($autoloaderPrefix, '\\'));
-                    }, array_keys($autoload['psr-4']));
-                }
-
-                $packages = array_merge($packages, $moduleNames);
+            if ((!in_array($packageType, $allowedPackageTypes))
+                || ($this->isSystemPackage($packageName))
+                || (!in_array($packageName, $allowedPackages))) {
+                continue;
             }
+
+            $autoload = $package->getAutoload();
+
+            if (array_key_exists('psr-4', $autoload) && count($autoload['psr-4']) > 0) {
+                $moduleNames = array_map(function ($autoloaderPrefix) {
+                    return str_replace('\\', '_', trim($autoloaderPrefix, '\\'));
+                }, array_keys($autoload['psr-4']));
+            }
+
+            $packages = array_merge($packages, $moduleNames);
         }
 
         return $packages;
