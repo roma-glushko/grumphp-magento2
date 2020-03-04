@@ -89,15 +89,30 @@ class MagentoModuleRegistrationTask extends AbstractExternalTask
         $customModules = $this->getCustomMagentoModules($customModulePattern);
         $declaredModules = $this->getDeclaredModuleList($configPhpPath);
 
-        $unregisteredModules = array_diff($declaredModules, $composerModules, $customModules);
+        $allModules = array_unique(array_merge($composerModules, $customModules));
+        $unregisteredModules = array_diff($allModules, $declaredModules);
+        $notExistedModules = array_diff($declaredModules, $allModules);
+
+        $errorMessage = '';
 
         if (count($unregisteredModules) > 0) {
+            $errorMessage = '✘ Modules that were not registered in config.php:' .
+                PHP_EOL .
+                implode(PHP_EOL, $unregisteredModules);
+        }
+
+        if (count($notExistedModules) > 0) {
+            $errorMessage .= PHP_EOL . PHP_EOL .
+                '✘ Modules that doesnt exist but registered in config.php:' .
+                PHP_EOL .
+                implode(PHP_EOL, $notExistedModules);
+        }
+
+        if ($errorMessage !== '') {
             return TaskResult::createFailed(
                 $this,
                 $context,
-                'Project has modules that were not registered in config.php:' .
-                PHP_EOL .
-                implode(PHP_EOL, $unregisteredModules)
+                $errorMessage
             );
         }
 
