@@ -16,7 +16,8 @@
     "require": {
         "php": ">=7.0",
         "phpro/grumphp": "~0.15",
-        "composer/composer": "^1.6"
+        "composer/composer": "^1.6",
+        "pulse00/monolog-parser": "^0.0.3"
     },
     "minimum-stability": "stable"
 }
