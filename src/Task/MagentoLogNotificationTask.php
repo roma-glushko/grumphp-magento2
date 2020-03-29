@@ -3,7 +3,6 @@
 namespace Glushko\GrumphpMagento2\Task;
 
 use DateTime;
-use Dubture\Monolog\Reader\LogReader;
 use Exception;
 use GrumPHP\Runner\TaskResult;
 use GrumPHP\Runner\TaskResultInterface;
@@ -11,6 +10,7 @@ use GrumPHP\Task\AbstractExternalTask;
 use GrumPHP\Task\Context\ContextInterface;
 use GrumPHP\Task\Context\GitPreCommitContext;
 use GrumPHP\Task\Context\RunContext;
+use MonologParser\Reader\LogReader;
 use Symfony\Component\OptionsResolver\OptionsResolver;
 
 /**
@@ -34,10 +34,10 @@ class MagentoLogNotificationTask extends AbstractExternalTask
         $resolver = new OptionsResolver();
 
         $resolver->setDefaults([
-            'var_dir' => './var',
+            'log_patterns' => './var/*/*.log',
         ]);
 
-        $resolver->addAllowedTypes('var_dir', ['string']);
+        $resolver->addAllowedTypes('log_patterns', ['array']);
 
         return $resolver;
     }
@@ -62,9 +62,15 @@ class MagentoLogNotificationTask extends AbstractExternalTask
     public function run(ContextInterface $context): TaskResultInterface
     {
         $config = $this->getConfiguration();
-        $varDir = $config['var_dir'];
+        $logPatterns = $config['log_patterns'];
 
-        $logFiles = glob($varDir . '/*/*/*.log', GLOB_NOSORT);
+        $logFiles = [];
+
+        foreach ($logPatterns as $logPattern) {
+            $logFiles[] = glob($logPattern, GLOB_NOSORT);
+        }
+
+        $logFiles = array_merge(...$logFiles);
 
         $dateNow = new DateTime();
         $report = [];
@@ -75,13 +81,8 @@ class MagentoLogNotificationTask extends AbstractExternalTask
 
             // go from the bottom to the top of the log file
             // and count how many records are inside of report interval (like not older then 1 day)
-            for ($i = $logCount - 1; $i >= 0; $i--) {
+            for ($i = $logCount - 2; $i >= 0; $i--) {
                 $lastLine = $logReader[$i];
-
-                // check log severity
-                if ($lastLine['level'] === 'INFO') {
-                    continue;
-                }
 
                 // calculate log relevance in hours
                 $logRelevance = ($dateNow->getTimestamp() - $lastLine['date']->getTimestamp()) / ( 60 * 60 );
@@ -89,6 +90,11 @@ class MagentoLogNotificationTask extends AbstractExternalTask
                 // check log relevance
                 if ($logRelevance > 24) {
                     break;
+                }
+
+                // check log severity
+                if ($lastLine['level'] === 'INFO') {
+                    continue;
                 }
 
                 $report[$logPath] = $report[$logPath] ? $report[$logPath] + 1 : 1;
