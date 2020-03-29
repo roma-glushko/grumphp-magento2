@@ -41,7 +41,7 @@ class MagentoLogNotificationTask extends AbstractExternalTask
 
         $resolver->addAllowedTypes('log_patterns', ['array']);
         $resolver->addAllowedTypes('exclude_severities', ['array']);
-        $resolver->addAllowedTypes('record_stale_threshold', ['string']);
+        $resolver->addAllowedTypes('record_stale_threshold', ['integer']);
 
         return $resolver;
     }

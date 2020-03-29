@@ -91,7 +91,7 @@ parameters:
         magento2-log-notification:
             log_patterns:
               - "./var/*/*.log"
-            record_stale_threshold: "1" # in days
+            record_stale_threshold: 1 # in days
             exclude_severities:
               - "INFO"
               - "DEBUG"
