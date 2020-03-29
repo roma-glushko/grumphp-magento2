@@ -6,7 +6,6 @@ Magento 2 specific tasks for <a href="https://github.com/phpro/grumphp">GrumPHP<
 
 The easiest way to install this package is through composer:
 ```bash
-composer config repositories.grumphp-magento2 vcs https://github.com/roma-glushko/grumphp-magento2
 composer require --dev roma-glushko/grumphp-magento2
 ```
 
@@ -20,7 +19,7 @@ parameters:
 
 ## Usage
 
-### MagentoModuleRegistration
+### 🛠 MagentoModuleRegistration
 
 It's a common practice to commit config.php file in Magento 2. Especially, the file is useful for managing modules. The common issue is when during development people forget to register newly added modules to the config.php which can lead to outcomes that hard to troubleshoot. This task helps to watch for such cases and let to know when registration is missing.
 
@@ -80,7 +79,7 @@ Key of the array is a package name. The value is a list of module names that the
 
 A glob() pattern that helps to find custom non-composer magento modules.
 
-### MagentoLogNotification
+### 🛠 MagentoLogNotification
 
 It's useful to be notified when you have recently added records in Magento logs. This tasks checks log files located 
 under `log_patterns` and informs if there are logs that have been added inside of time frame defined in `record_stale_threshold`.
