@@ -16,7 +16,8 @@
     "require": {
         "php": ">=7.0",
         "phpro/grumphp": "~0.15",
-        "composer/composer": "^1.6"
+        "composer/composer": "^1.6",
+        "roma-glushko/monolog-parser": "^1.0"
     },
     "minimum-stability": "stable"
 }
