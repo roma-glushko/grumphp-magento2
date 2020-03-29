@@ -35,7 +35,7 @@ class MagentoLogNotificationTask extends AbstractExternalTask
 
         $resolver->setDefaults([
             'log_patterns' => ['./var/*/*.log'],
-            'record_stale_threshold' => '1',
+            'record_stale_threshold' => 1,
             'exclude_severities' => ['INFO', 'DEBUG'],
         ]);
 
@@ -76,7 +76,7 @@ class MagentoLogNotificationTask extends AbstractExternalTask
             $logFiles[] = glob($logPattern, GLOB_NOSORT);
         }
 
-        $logFiles = array_merge(...$logFiles);
+        $logFiles = array_unique(array_merge(...$logFiles));
 
         $dateNow = new DateTime();
         $logReport = [];
