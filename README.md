@@ -79,3 +79,39 @@ Key of the array is a package name. The value is a list of module names that the
 *Default: `./app/code/*/*/registration.php`*
 
 A glob() pattern that helps to find custom non-composer magento modules.
+
+### MagentoLogNotification
+
+It's useful to be notified when you have recently added records in Magento logs. This tasks checks log files located 
+under `log_patterns` and informs if there are logs that have been added inside of time frame defined in `record_stale_threshold`.
+The `exclude_severities` helps to reduce noisy records. 
+
+```yaml
+parameters:
+    tasks:
+        magento2-log-notification:
+            log_patterns:
+              - "./var/*/*.log"
+            record_stale_threshold: "1" # in days
+            exclude_severities:
+              - "INFO"
+              - "DEBUG"
+```
+
+**log_patterns**
+
+*Default: `./var/*/*.log`*
+
+Paths where log files should be watched
+
+**record_stale_threshold**
+
+*Default: `1`*
+
+Stale threshold (in days) that helps to ignore old records in logs.
+
+**exclude_severities**
+
+*Default: `INFO, DEBUG`*
+
+This config excludes records with specified severity levels.

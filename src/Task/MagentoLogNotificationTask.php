@@ -34,10 +34,14 @@ class MagentoLogNotificationTask extends AbstractExternalTask
         $resolver = new OptionsResolver();
 
         $resolver->setDefaults([
-            'log_patterns' => './var/*/*.log',
+            'log_patterns' => ['./var/*/*.log'],
+            'record_stale_threshold' => '1',
+            'exclude_severities' => ['INFO', 'DEBUG'],
         ]);
 
         $resolver->addAllowedTypes('log_patterns', ['array']);
+        $resolver->addAllowedTypes('exclude_severities', ['array']);
+        $resolver->addAllowedTypes('record_stale_threshold', ['string']);
 
         return $resolver;
     }
@@ -63,6 +67,8 @@ class MagentoLogNotificationTask extends AbstractExternalTask
     {
         $config = $this->getConfiguration();
         $logPatterns = $config['log_patterns'];
+        $excludedSeverities = $config['exclude_severities'];
+        $recordStaleThreshold = $config['record_stale_threshold'];
 
         $logFiles = [];
 
@@ -88,12 +94,12 @@ class MagentoLogNotificationTask extends AbstractExternalTask
                 $recordFreshness = $dateNow->diff($lastLine['date'])->days;
 
                 // check log relevance
-                if ($recordFreshness > 10) {
+                if ($recordFreshness > $recordStaleThreshold) {
                     break;
                 }
 
-                // check log severity
-                if ($lastLine['level'] === 'INFO') {
+                // check record severity
+                if (in_array($lastLine['level'], $excludedSeverities, true)) {
                     continue;
                 }
 
