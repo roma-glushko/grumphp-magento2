@@ -73,7 +73,7 @@ class MagentoLogNotificationTask extends AbstractExternalTask
         $logFiles = array_merge(...$logFiles);
 
         $dateNow = new DateTime();
-        $report = [];
+        $logReport = [];
 
         foreach ($logFiles as $logPath) {
             $logReader = new LogReader($logPath);
@@ -81,14 +81,14 @@ class MagentoLogNotificationTask extends AbstractExternalTask
 
             // go from the bottom to the top of the log file
             // and count how many records are inside of report interval (like not older then 1 day)
-            for ($i = $logCount - 2; $i >= 0; $i--) {
+            for ($i = $logCount - 1; $i >= 0; $i--) {
                 $lastLine = $logReader[$i];
 
                 // calculate log relevance in hours
-                $logRelevance = ($dateNow->getTimestamp() - $lastLine['date']->getTimestamp()) / ( 60 * 60 );
+                $recordFreshness = $dateNow->diff($lastLine['date'])->days;
 
                 // check log relevance
-                if ($logRelevance > 24) {
+                if ($recordFreshness > 10) {
                     break;
                 }
 
@@ -97,19 +97,24 @@ class MagentoLogNotificationTask extends AbstractExternalTask
                     continue;
                 }
 
-                $report[$logPath] = $report[$logPath] ? $report[$logPath] + 1 : 1;
+                $logReport[$logPath] = array_key_exists($logPath, $logReport) ? $logReport[$logPath] + 1 : 1;
             }
         }
 
-        if (0 === count($report)) {
+        if (0 === count($logReport)) {
             return TaskResult::createPassed($this, $context);
         }
 
         $message = '✘ Magento Logs have recently added records:' . PHP_EOL;
 
-        $message .= array_map(function ($logPath, $countRelevantRecords) {
-            return sprintf('• %s - %s records', $logPath, $countRelevantRecords) . PHP_EOL;
-        }, $report);
+        foreach ($logReport as $logPath => $recentLogCount) {
+            $message .= sprintf(
+                    '• %s - %s %s',
+                    $logPath,
+                    $recentLogCount,
+                    $recentLogCount > 1 ? 'records' : 'record'
+                ) . PHP_EOL;
+        }
 
         return TaskResult::createFailed(
             $this,
