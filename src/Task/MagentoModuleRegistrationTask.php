@@ -225,12 +225,23 @@ class MagentoModuleRegistrationTask extends AbstractExternalTask
     /**
      * Checks if the passed packaged is system package
      *
+     * Expected system modules variants:
+     * magento/product-community-edition
+     * magento/product-enterprise-edition
+     * magento/magento-cloud-patches
+     * magento/ece-tools
+     *
+     * Additionally excluded
+     * magento/magento-cloud-components
+     * It is added to config.php as meta-package
+     * TODO refactor this
+     *
      * @param string $packageName
      *
      * @return bool
      */
     public function isSystemPackage($packageName = '')
     {
-        return preg_match('/magento\/product-*/', $packageName) == 1;
+        return preg_match('/magento\/(product|magento-cloud|ece)-(?!components)/', $packageName) == 1;
     }
 }
